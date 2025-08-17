@@ -6,7 +6,7 @@
 
 import asyncio, json, os, platform, subprocess, psutil
 from datetime import datetime
-from fastapi import FastAPI, WebSocket
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
 app = FastAPI()
@@ -95,7 +95,10 @@ async def mcp_socket(ws: WebSocket):
     await ws.accept()
     # simple JSON-RPC loop
     while True:
-        msg = await ws.receive_text()
+        try:
+            msg = await ws.receive_text()
+        except WebSocketDisconnect:
+            break
         try:
             req = json.loads(msg)
             mid = req.get("id")
