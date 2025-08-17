@@ -8,6 +8,25 @@ import asyncio, json, os, platform, subprocess, psutil
 from datetime import datetime, UTC
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
+from typing import TypedDict
+
+
+class DUEntry(TypedDict):
+    path: str
+    kb: int
+
+
+class BigfileItem(TypedDict):
+    path: str
+    size: str
+
+
+class ProcInfo(TypedDict):
+    pid: int
+    name: str
+    mem_pct: float
+    cpu_pct: float
+    cmd: str
 
 app = FastAPI()
 
@@ -15,7 +34,7 @@ app = FastAPI()
 def sh(cmd: str) -> str:
     return subprocess.check_output(["bash","-lc", cmd], text=True, stderr=subprocess.DEVNULL)
 
-def du_k(path: str, depth: int = 2):
+def du_k(path: str, depth: int = 2) -> list[DUEntry]:
     # macOS: -d; Linux: --max-depth
     try:
         out = subprocess.check_output(["du","-k","-d",str(depth),path], text=True, stderr=subprocess.DEVNULL)
@@ -30,7 +49,8 @@ def du_k(path: str, depth: int = 2):
             pass
     return rows
 
-def bigfiles(path: str, min_size: str = "+200M", limit: int = 200):
+
+def bigfiles(path: str, min_size: str = "+200M", limit: int = 200) -> list[BigfileItem]:
     out = sh(f'find "{path}" -type f -size {min_size} -print0 | xargs -0 ls -laSh 2>/dev/null | head -n {limit}')
     items=[]
     for line in out.splitlines():
@@ -40,7 +60,8 @@ def bigfiles(path: str, min_size: str = "+200M", limit: int = 200):
             items.append({"path": fp, "size": size})
     return items
 
-def pkg_caches():
+
+def pkg_caches() -> dict[str, int]:
     home = os.path.expanduser("~")
     def du1(p):
         if not os.path.isdir(p): return 0
@@ -51,14 +72,16 @@ def pkg_caches():
     pipc = os.path.join(home, ".cache", "pip")
     return {"brew_kb": du1(brew), "npm_kb": du1(npm), "pip_kb": du1(pipc)}
 
-def docker_df():
+
+def docker_df() -> dict[str, list[str]]:
     try:
         raw = sh("docker system df --format '{{json .}}' || true").splitlines()
     except Exception:
         raw = []
     return {"raw": raw}
 
-def top_procs(limit: int = 25):
+
+def top_procs(limit: int = 25) -> list[ProcInfo]:
     procs = []
     for p in psutil.process_iter(attrs=["pid","name","memory_percent","cpu_percent","cmdline"]):
         try:
@@ -74,6 +97,7 @@ def top_procs(limit: int = 25):
     procs.sort(key=lambda r:(-r["mem_pct"], -r["cpu_pct"]))
     return procs[:limit]
 
+
 # ---- MCP-ish tool registry -------------------------------------------------
 TOOLS = {
     "fs.du": lambda params: du_k(params.get("path") or os.path.expanduser("~"), int(params.get("depth") or 2)),
@@ -87,11 +111,12 @@ TOOLS = {
 }
 
 @app.get("/", response_class=PlainTextResponse)
-def health():
+def health() -> str:
     return "mcp:ok " + datetime.now(UTC).isoformat()
 
+
 @app.websocket("/mcp")
-async def mcp_socket(ws: WebSocket):
+async def mcp_socket(ws: WebSocket) -> None:
     await ws.accept()
     # simple JSON-RPC loop
     while True:
