@@ -36,9 +36,16 @@ Cleanup plans (LLM output) are YAML ranked by GB freed with rationale, risk leve
 
 ```mermaid
 flowchart TD
-    A["ChatGPT Custom GPT<br/>('PC Reviewer')<br/>- uses MCP tools"] <--> |wss| B["MCP Server (this)<br/>- /mcp websocket<br/>- read-only tools"]
-    A --> C["YAML Cleanup Plan<br/>(sorted by GB freed)"]
-    B --> |"OS utilities: du, find, ps, docker"| D["Your Machine<br/>(read-only first)"]
+    subgraph Remote
+        A["ChatGPT Custom GPT<br/>('PC Reviewer')<br/>- uses MCP tools"]
+        A --> C["YAML Cleanup Plan<br/>(sorted by GB freed)"]
+    end
+    subgraph Local["Your Computer"]
+        B["MCP Server<br/>(runs locally)<br/>- /mcp websocket<br/>- read-only tools"]
+        D["Your Machine<br/>(read-only first)"]
+    end
+    A <--> |wss| B
+    B --> |"OS utilities: du, find, ps, docker"| D
 ```
 
 ## Repo layout
