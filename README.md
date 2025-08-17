@@ -34,17 +34,11 @@ Cleanup plans (LLM output) are YAML ranked by GB freed with rationale, risk leve
 
 ## Architecture
 
-```text
-+--------------------+            wss               +----------------------+
-|  ChatGPT Custom    | <--------------------------> |   MCP Server (this)  |
-|  GPT ("PC Reviewer")                              |  - /mcp websocket    |
-|  - uses MCP tools  |                              |  - read-only tools   |
-+--------------------+                              +----------------------+
-         |                                                       |
-         |                                     OS utilities: du, find, ps, docker
-         |                                                       |
-         v                                                       v
-  YAML Cleanup Plan (sorted by GB freed)           Your Machine (read-only first)
+```mermaid
+flowchart TD
+    A["ChatGPT Custom GPT<br/>('PC Reviewer')<br/>- uses MCP tools"] <--> |wss| B["MCP Server (this)<br/>- /mcp websocket<br/>- read-only tools"]
+    A --> C["YAML Cleanup Plan<br/>(sorted by GB freed)"]
+    B --> |"OS utilities: du, find, ps, docker"| D["Your Machine<br/>(read-only first)"]
 ```
 
 ## Repo layout
