@@ -5,7 +5,7 @@
 # Good enough for a Custom GPT connector expecting Remote MCP tool calls.
 
 import asyncio, json, os, platform, subprocess, psutil
-from datetime import datetime
+from datetime import datetime, UTC
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
@@ -88,7 +88,7 @@ TOOLS = {
 
 @app.get("/", response_class=PlainTextResponse)
 def health():
-    return "mcp:ok " + datetime.utcnow().isoformat()
+    return "mcp:ok " + datetime.now(UTC).isoformat()
 
 @app.websocket("/mcp")
 async def mcp_socket(ws: WebSocket):
