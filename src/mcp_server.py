@@ -8,11 +8,11 @@ from datetime import datetime, UTC
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.responses import PlainTextResponse
 
-from tools.fs_tools import du_k, bigfiles
-from tools.pkg_tools import pkg_caches
-from tools.docker_tools import docker_df
-from tools.proc_tools import top_procs
-from logging_middleware import setup_logging
+from .tools.fs_tools import du_k, bigfiles
+from .tools.pkg_tools import pkg_caches
+from .tools.docker_tools import docker_df
+from .tools.proc_tools import top_procs
+from .logging_middleware import setup_logging
 
 app = FastAPI()
 setup_logging(app)

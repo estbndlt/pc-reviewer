@@ -1,4 +1,4 @@
-from tools.proc_tools import top_procs
+from src.tools.proc_tools import top_procs
 
 
 def test_top_procs_basic():

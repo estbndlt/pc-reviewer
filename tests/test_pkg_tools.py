@@ -1,4 +1,4 @@
-from tools.pkg_tools import pkg_caches
+from src.tools.pkg_tools import pkg_caches
 
 
 def test_pkg_caches_keys_and_types():
