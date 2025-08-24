@@ -1,4 +1,4 @@
-from tools.fs_tools import du_k, bigfiles
+from src.tools.fs_tools import du_k, bigfiles
 from pathlib import Path
 import tempfile
 

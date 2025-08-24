@@ -1,5 +1,5 @@
 from fastapi.testclient import TestClient
-from mcp_server import app
+from src.mcp_server import app
 
 client = TestClient(app)
 

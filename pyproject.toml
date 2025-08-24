@@ -1,0 +1,18 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pc-reviewer"
+version = "0.0.0"
+description = "pc-reviewer"
+readme = "README.md"
+authors = [ { name = "estbndlt" } ]
+license = { text = "MIT" }
+dependencies = []
+
+[tool.setuptools]
+package-dir = { "" = "src" }
+
+[tool.setuptools.packages.find]
+where = ["src"]

@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 import logging
-from logging_middleware import setup_logging
+from src.logging_middleware import setup_logging
 
 
 app = FastAPI()
