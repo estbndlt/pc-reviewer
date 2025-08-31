@@ -1,0 +1,183 @@
+cleanup_plan:
+  - title: "Archive /Move large Movies / iMovie libraries to external storage"
+    rationale: "User Movies and iMovie libraries account for the largest per-user disk usage (~82 GB). Offloading to external/archive reduces local storage without losing data."
+    est_space_gb: 82.3
+    risk: "Medium"
+    commands:
+      macos:
+        - "# Dry-run: list >200MB files under Movies"
+        - "find $HOME/Movies -type f -size +200M -print0 | xargs -0 ls -lh"
+        - "# Dry-run: simulate rsync to external disk mounted at /Volumes/Backup"
+        - "rsync -avh --progress --dry-run $HOME/Movies/ /Volumes/Backup/Movies/"
+        - "# To actually copy: (requires user APPROVE) <COPY_COMMAND_REDACTED>"
+      linux:
+        - "find $HOME/Movies -type f -size +200M -print0 | xargs -0 ls -lh"
+        - "rsync -avh --progress --dry-run $HOME/Movies/ /mnt/backup/Movies/"
+        - "# To actually copy: (APPROVE) <COPY_COMMAND_REDACTED>"
+      windows:
+        - "powershell -Command \"Get-ChildItem -Path $env:USERPROFILE\\Movies -Recurse | Where-Object { $_.Length -gt 200MB } | Select FullName, Length\""
+        - "powershell -Command \"robocopy $env:USERPROFILE\\Movies E:\\Movies /E /L\"  # /L = list-only (dry-run)"
+        - "# To actually copy: (APPROVE) <COPY_COMMAND_REDACTED>"
+    verification:
+      - "Confirm copied files exist on the target and sizes match (rsync --dry-run before, then rsync --checksum or compare hashes for a sample)."
+      - "Check free space delta with `df -h` (macOS/Linux) or `Get-PSDrive` (Windows)."
+    rollback:
+      - "Keep source until verification complete; if incomplete copy, re-run rsync to resume. If files were moved accidentally, move them back from the backup copy."
+    notes:
+      - "Prefer archiving instead of deletion; moving or deleting large media is user-sensitive."
+
+  - title: "Remove / reset Docker VM image file (Docker.raw) / Reclaim Docker resources"
+    rationale: "Docker VM disk can be large and can often be reclaimed by pruning images/volumes or using Docker Desktop cleanup. Deleting the VM file directly is destructive."
+    est_space_gb: 60.0
+    risk: "High"
+    commands:
+      macos:
+        - "# Report-first: show Docker disk usage and reclaimable space"
+        - "docker system df"
+        - "# List images/volumes before pruning"
+        - "docker image ls -a"
+        - "docker volume ls"
+        - "# Safer reclaim (low/medium risk): inspect output of the above commands"
+        - "# To actually prune reclaimable data (requires APPROVE): <DESTRUCTIVE_COMMAND_REDACTED>"
+        - "# HIGH-RISK: deleting Docker VM file directly is dangerous. Prefer Docker Desktop Reset > Clean / Purge data. If you still want to remove file (APPROVE): <REMOVE_DOCKER_VM_FILE_REDACTED>"
+      linux:
+        - "docker system df"
+        - "docker image ls -a"
+        - "# To prune (requires APPROVE): <DESTRUCTIVE_COMMAND_REDACTED>"
+      windows:
+        - "docker system df"
+        - "# To prune (requires APPROVE, run in elevated PowerShell): <DESTRUCTIVE_COMMAND_REDACTED>"
+    verification:
+      - "Confirm `docker system df` shows reclaimed space; check `df -h` for freed GBs."
+      - "After any Docker Desktop reset, start Docker and ensure containers/images needed are restored."
+    rollback:
+      - "If a Docker VM file was removed, you may need to reinstall Docker Desktop or restore from external backup; deleted images/volumes are irrecoverable unless backed up."
+    notes:
+      - "Recommend using Docker CLI prune or Docker Desktop's GUI cleanup first (requires explicit APPROVE) before any manual file deletion."
+
+  - title: "Clean $HOME/Downloads (old) — review and remove large installers and archives"
+    rationale: "Downloads contains many large installers and zip files (~16.4 GB). Reviewing and removing unneeded items is low risk and yields quick gains."
+    est_space_gb: 16.4
+    risk: "Low"
+    commands:
+      macos:
+        - "find $HOME/Downloads -maxdepth 2 -type f -size +200M -exec ls -lh {} \;"
+        - "# Dry-run to move large files to archive: mkdir -p /Volumes/Backup/Downloads && rsync -avh --dry-run $HOME/Downloads/ /Volumes/Backup/Downloads/"
+        - "# To delete selected files after review (requires APPROVE): <DELETE_COMMAND_REDACTED>"
+      linux:
+        - "find $HOME/Downloads -maxdepth 2 -type f -size +200M -exec ls -lh {} \;"
+        - "rsync -avh --progress --dry-run $HOME/Downloads/ /mnt/backup/Downloads/"
+        - "# To delete (APPROVE): <DELETE_COMMAND_REDACTED>"
+      windows:
+        - "powershell -Command \"Get-ChildItem $env:USERPROFILE\\Downloads -Recurse | Where-Object { $_.Length -gt 200MB } | Select FullName, Length\""
+        - "powershell -Command \"robocopy $env:USERPROFILE\\Downloads E:\\Downloads /E /L\"  # list-only"
+        - "# To delete (APPROVE): <DELETE_COMMAND_REDACTED>"
+    verification:
+      - "Manually inspect list of large files before removal; after deletion verify disk free with `df -h`/`Get-PSDrive`."
+    rollback:
+      - "If deleted accidentally, restore from backup (if copied) or use file-recovery tools (time-sensitive)."
+
+  - title: "Uninstall unused Android SDK system images"
+    rationale: "Android system images in $HOME/Library/Android/sdk/system-images are multi-GB each. Removing unneeded system images frees significant space."
+    est_space_gb: 15.0
+    risk: "Medium"
+    commands:
+      macos:
+        - "# Dry-run: list installed system images"
+        - "$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --list | grep \"system-images\" || echo 'Manually inspect $HOME/Library/Android/sdk/system-images/'"
+        - "# To remove an image (example API 34): (APPROVE)"
+        - "$HOME/Library/Android/sdk/cmdline-tools/latest/bin/sdkmanager --uninstall \"system-images;android-34;google_apis;arm64-v8a\""
+      linux:
+        - "sdkmanager --list | grep \"system-images\" || ls -lh $HOME/Android/Sdk/system-images/"
+        - "# To uninstall (APPROVE): sdkmanager --uninstall \"system-images;android-34;google_apis;arm64-v8a\""
+      windows:
+        - "cmdline-tools\\latest\\bin\\sdkmanager --list | findstr system-images"
+        - "# To uninstall (APPROVE): cmdline-tools\\latest\\bin\\sdkmanager --uninstall \"system-images;android-34;google_apis;arm64-v8a\""
+    verification:
+      - "Check freed space with `du -sh $HOME/Library/Android/sdk/system-images/*` before/after, and `df -h` to confirm reclaimed GB."
+    rollback:
+      - "Reinstall required images with sdkmanager if needed. Keep a list of uninstalled packages to reinstall."
+
+  - title: "Prune large Git working trees / build artifacts in $HOME/Documents/git"
+    rationale: "The $HOME/Documents/git folder can hold large build artifacts. Cleaning node_modules and generated files can free space while preserving source history."
+    est_space_gb: 14.0
+    risk: "Low"
+    commands:
+      macos/linux:
+        - "# Dry-run: find biggest dirs under git"
+        - "du -sh $HOME/Documents/git/* | sort -h"
+        - "# List top large files under a repo"
+        - 'find $HOME/Documents/git -type f -size +200M -exec ls -lh {} \;'
+        - "# To remove node_modules across repos (APPROVE): <DELETE_COMMAND_REDACTED>"
+        - "# Safer: use pnpm/ npm ci with cache and remove node_modules per-project after archiving"
+      windows:
+        - "powershell -Command \"Get-ChildItem $env:USERPROFILE\\Documents\\git -Directory | ForEach-Object { Write-Output (Get-ChildItem $_.FullName -Recurse | Measure-Object -Property Length -Sum).Sum }\""
+        - "# To remove node_modules (APPROVE): <DELETE_COMMAND_REDACTED>"
+    verification:
+      - "Run unit tests or build a sample repo after cleaning to ensure no required artifacts were removed."
+    rollback:
+      - "Restore node_modules via `npm ci` / `yarn install` or restore from backups."
+
+  - title: "Clear large application caches (.nvm, .cache, Gradle, Core caches)"
+    rationale: ".nvm cache, $HOME/Library/Caches, Gradle wrapper cache and other caches can often be safely cleared to free space."
+    est_space_gb: 12.3
+    risk: "Low"
+    commands:
+      macos/linux:
+        - "# Inspect sizes"
+        - "du -sh $HOME/.nvm $HOME/.cache $HOME/.gradle $HOME/Library/Caches || du -sh $HOME/.cache $HOME/.gradle"
+        - "# Dry-run: list contents"
+        - 'find $HOME/.nvm -maxdepth 2 -type f -exec ls -lh {} \; | head -n 20'
+        - "# To clear nvm/npm cache safely (APPROVE): nvm cache clear && npm cache clean --force"
+        - "# To clear Gradle cache (APPROVE): <DELETE_COMMAND_REDACTED>"
+        - "# To clear macOS user caches (APPROVE): <DELETE_COMMAND_REDACTED>  # HIGHER RISK: may remove useful caches; prefer app-specific actions"
+      windows:
+        - "powershell -Command \"Get-ChildItem -Directory $env:USERPROFILE\\.nvm, $env:USERPROFILE\\.npm -Force | Select FullName\""
+        - "# To clear npm cache (APPROVE): npm cache clean --force"
+    verification:
+      - "Check `du -sh` before/after; run apps that use caches (e.g., Gradle build) to regenerate caches."
+    rollback:
+      - "Some caches are regenerated automatically; no rollback needed. If an app breaks, reinstall or re-run tooling to rebuild caches."
+
+  - title: "Remove large Descript / application asset files"
+    rationale: "Descript project assets were reported (~2.0GB). Cleaning or archiving per-project assets yields moderate space quickly."
+    est_space_gb: 2.0
+    risk: "Low"
+    commands:
+      macos/linux:
+        - "du -sh \"$HOME/Library/Application Support/Descript\"/* | sort -h"
+        - "# Dry-run: list big files"
+        - "find \"$HOME/Library/Application Support/Descript\" -type f -size +100M -ls"
+        - "# To delete specific asset (APPROVE): <DELETE_COMMAND_REDACTED>"
+      windows:
+        - "powershell -Command \"Get-ChildItem \"$env:APPDATA\\Descript\" -Recurse | Where-Object { $_.Length -gt 100MB } | Select FullName, Length\""
+    verification:
+      - "Open Descript and verify projects load; check disk free after cleanup."
+    rollback:
+      - "Restore from project backups or the external archive."
+
+  - title: "Run Homebrew / npm housekeeping"
+    rationale: "Package caches include npm and Homebrew. Housekeeping reclaims modest space with low risk."
+    est_space_gb: 1.8
+    risk: "Low"
+    commands:
+      macos:
+        - "brew cleanup --prune=all --dry-run"
+        - "npm cache verify  # shows size"
+        - "# To clean (APPROVE): <CLEANUP_COMMAND_REDACTED>"
+      linux:
+        - "apt-get autoremove --dry-run  # distro-specific"
+        - "npm cache verify"
+        - "# To clean (APPROVE): <CLEANUP_COMMAND_REDACTED>"
+      windows:
+        - "npm cache verify"
+        - "# To clean (APPROVE): npm cache clean --force"
+    verification:
+      - "Check `brew --cache` and `npm cache verify` outputs and disk free before/after."
+    rollback:
+      - "Caches will be rebuilt as packages are used; reinstall packages if broken."
+
+notes:
+  - "Never delete `Documents`, `Pictures`, or `Desktop` unless you explicitly ask."
+  - "All destructive commands require an explicit approval line. To execute a destructive command I will require you to type: APPROVE \"<DESTRUCTIVE_COMMAND_REDACTED>\" — e.g.: APPROVE \"<DESTRUCTIVE_COMMAND_REDACTED>\""
+  - "I recommend starting with non-destructive actions (list, archive, prune via Docker CLI) and verifying results before any file deletion."
