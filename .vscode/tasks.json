@@ -1,0 +1,47 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+        "label": "mcp: start mcp-server",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/python -m uvicorn src.mcp_server:app --host 0.0.0.0 --port 8765",
+        "isBackground": true,
+        "problemMatcher": [],
+        "group": {
+            "kind": "build",
+            "isDefault": false
+        }
+    },
+    {
+        "label": "mcp: stop (pkill) mcp-server",
+        "type": "shell",
+        "command": "pkill -f 'uvicorn src.mcp_server:app' || true",
+        "problemMatcher": [],
+        "group": {
+            "kind": "build",
+            "isDefault": false
+        }
+    },
+    {
+        "label": "mcp-proxy: start mcp-bridge",
+        "type": "shell",
+        "command": "${workspaceFolder}/.venv/bin/python -m uvicorn src.mcp_http_bridge:app --host 0.0.0.0 --port 8766",
+        "isBackground": true,
+        "problemMatcher": [],
+        "group": {
+            "kind": "build",
+            "isDefault": false
+        }
+    },
+    {
+        "label": "mcp-proxy: stop (pkill) mcp-bridge",
+        "type": "shell",
+        "command": "pkill -f 'uvicorn src.mcp_http_bridge:app' || true",
+        "problemMatcher": [],
+        "group": {
+            "kind": "build",
+            "isDefault": false
+        }
+    },
+]
+}

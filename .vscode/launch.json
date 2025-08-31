@@ -1,0 +1,24 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Debug MCP server (uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.mcp_server:app", "--host", "0.0.0.0", "--port", "8765"],
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+    ,
+    {
+      "name": "Debug MCP proxy (uvicorn)",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": ["src.mcp_http_bridge:app", "--host", "0.0.0.0", "--port", "8766"],
+      "justMyCode": false,
+      "console": "integratedTerminal"
+    }
+  ]
+}
